@@ -2,20 +2,54 @@
 <html lang="zh-hans">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no,initial-scale=1.0">
     <title>canvas</title>
     <link rel="stylesheet" href="./style.css">
+   
 </head>
 <body>
     <canvas id="canvas"></canvas>
     <div class="area"></div>
-    <div class="tools">
-        <button id='eraser'>橡皮擦</button>
-        <button id='painting' class='active'>画笔</button>        
+    <div class="actions" id="actions">
+        <svg class="icon" id="eraser">
+            <use xlink:href="#icon-eraser"></use>
+        </svg>
+        <svg class="icon active" id="painting">
+            <use xlink:href="#icon-pen"></use>
+        </svg>
+           <!--  清除选项 -->
+        <svg class="icon active" id="painting">
+            <use xlink:href="#icon-pen"></use>
+        </svg>
+       <!--  保存选项 -->
+        <svg class="icon active" id="painting">
+            <use xlink:href="#icon-pen"></use>
+        </svg>
+        <!-- <button id='eraser'>橡皮擦</button>
+        <button id='painting' class='active'>画笔</button> -->        
+    </div>
+    <!-- 画笔颜色选择区 -->
+    <div class="pens">
+        <div class="black active" style="background:black"></div>
+        <div class="white" style="background:white"></div>
+        <div class="red" style="background:red"></div>
+        <div class="green" style="background:green"></div>
+        <div class="yellow" style="background:yellow"></div>
+        <div class="pink" style="background:pink"></div>
+        <div class="blue" style="background:blue"></div>
+        <div class="blueviolet" style="background:blueviolet"></div>
+    </div>
+    <!-- 画笔粗细选择区 -->
+    <div class="width">
+        <div class="thin"></div>
+        <div class="nomal"></div>
+        <div class="thick"></div>
     </div>
 
 
 <script src="./jquery-3.3.1.js"></script>
 
 <script src="./src/js/pc.js"></script>
+<script src="//at.alicdn.com/t/font_896949_wqkkwb9m7g.js"></script>
 </body>
 </html>
