@@ -3,130 +3,172 @@
         this.$canvas=$('#canvas')
         this.$ctx = this.$canvas.get(0).getContext('2d')//get(0)是什么方法，哪可以查资料？
         this.using=false
-        this.lastPoint={x:undefined,y:undefined}
+        this.lastPoint={x1:undefined,y1:undefined} 
+        this.newPoint = { x1: undefined, y1: undefined } 
         this.eraserEnabled=false
         this.color='black'
+        this.penWidth=6
+        this.pageWidth = document.documentElement.clientWidth
+        this.pageHeight = document.documentElement.clientHeight
         this.init()
     }
     //初始化
     AppCanvas.prototype.init=function(){
-        this.autoPage()
+        this.autoPage(this.pageWidth, this.pageHeight)
         this.useroptions()
         this.listenToUser()
     }   
     //更新画板
-    AppCanvas.prototype.autoPage=function(){
-        this.changePage()
+    AppCanvas.prototype.autoPage = function (pageWidth, pageHeight){
+        this.changePage(pageWidth, pageHeight)
         window.onresize = ()=>{
-            this.changePage()
+            this.changePage(pageWidth, pageHeight)
         }        
     }
     //监控用户更改页面大小动作
-    AppCanvas.prototype.changePage=function(){
-        let pageWidth = document.documentElement.clientWidth
-        let pageHeight = document.documentElement.clientHeight
+    AppCanvas.prototype.changePage = function (pageWidth, pageHeight){
+        
         this.$canvas.attr({ width: pageWidth, height: pageHeight })
     }
        //监控用户对选项操作的动作
     AppCanvas.prototype.useroptions=function(){
         console.log('useroptions ok')
+        
+        this.painting()
+        this.penscolor()
+        this.pensWidth()
+        this.clearing()
+        this.saving()
+        this.erasing()
+    }
+    AppCanvas.prototype.erasing=function(){
         self=this
         $('#eraser').on('click', function(){
-            console.log('触屏下点击事件')
-            self.eraserEnabled = true//这里如果用箭头函数的画，我怎么修改对象中的属性值呢？
-            console.log('橡皮擦状态')
+            $('.pens').children().removeClass('active')
+            console.log('进入橡皮擦状态')
+            self.eraserEnabled = true
             $('#eraser').addClass('active').siblings().removeClass('active')
+            self.color ='#fafafafa' 
         })
-        $('#painting').on('click', () => {
-            self.eraserEnabled = false
+    }
+    AppCanvas.prototype.painting = function () {   
+        self = this
+        $('#painting').on('click', () => {        
             console.log('绘画模式')
-            $('#painting').addClass('active').siblings().removeClass('active')
-            $('.area').css('display', 'none')
-        })       
+            this.drawing()           
+        })  
+    }
+    AppCanvas.prototype.drawing = function () { 
+        $('#painting').addClass('active').siblings().removeClass('active')
+        $('.area').css('display', 'none')
+        self.eraserEnabled = false
+    }
+    AppCanvas.prototype.penscolor = function () {
+        console.log('color ok')
+        self = this     
         $('.pens>div').on('click',function(){           
             $(this).addClass('active').siblings().removeClass('active')
-            //
+            //改变画笔颜色
             let code=$(this).attr('style')
             pencolor = code.substring(11, code.length)
             console.log(pencolor)
             self.color = pencolor
+            self.using = false
+            self.lastPoint = { x1: undefined, y1: undefined }
+            self.drawing()
         }) 
+    }
         //增加宽度选项，橡皮擦宽度选项，保存选项，清除选项
+    AppCanvas.prototype.pensWidth = function () {
+        console.log('请选择画笔宽度ok')
+        $('.thin').on('click',()=>{
+            console.log('细线')
+            self.penWidth = 5
+            $('.thin').addClass('active').siblings().removeClass('active')
+        })
+        $('.thick').on('click', () => {
+            console.log('粗线')
+            self.penWidth = 12
+            $('.thick').addClass('active').siblings().removeClass('active')
+        })
+    }
+    AppCanvas.prototype.clearing = function () {
+        console.log('清空画板 ok')
+        $('#clear').on('click', () => { 
+            console.log('清空了')
+            $('#clear').addClass('active')
+            self.$ctx.clearRect(0, 0, self.pageWidth, self.pageHeight)
+            setTimeout(() => {
+                $('#clear').removeClass('active')
+            }, 1000);
+        })     
+    }
+    AppCanvas.prototype.saving = function () {
+        console.log('保存ok')
+        $('#saving').on('click',()=>{
+            //这个保存的事件的函数怎么改成jquery？
+            
+            $('#saving').addClass('active')
+            let url = canvas.toDataURL('image/png')
+            let $a=$('<a></a>')
+            $('body').append($a)
+            var a=document.querySelector('a')
+            a.href=url
+            a.download='画'
+            a.click()
+            setTimeout(() => {
+                $('#saving').removeClass('active')
+            }, 1000);
+        })
     }
         
 
     AppCanvas.prototype.listenToUser=function(){
-    // if(ontouchstart===undefined){方法1
         self = this
-        if(document.body.ontouchstart!==undefined){//为触屏设备
-            console.log('触屏模式')       
-            this.$canvas.on('touchstart',function(point){
-                self.using = true;
-                let x = point.touches[0].clientX
-                let y = point.touches[0].clientY
-                lastPoint = { x: x, y: y }
-                if (self.eraserEnabled) {
-                    $('.area').css('display', 'block')
-                    console.log('准备橡皮擦:' + self.eraserEnabled)
-                    $('.area').css({ top: y - 4, left: x - 4 })//要能调节大小
-                }
-            })
-            this.$canvas.on('touchmove', (point) => {
+        this.$canvas.on('touchstart mousedown',function(point){
+            self.using = true
+            lastPoint = self.testCharacter(point)
+            if (self.eraserEnabled) {
+                $('.area').css('display', 'block')
+            }    
+        })
+        this.$canvas.on('touchmove mousemove', (point) => {
+            if (self.using){
                 console.log('move')
-                let x = point.touches[0].clientX
-                let y = point.touches[0].clientY
-                let newPoint = { x: x, y: y }
-                if (self.eraserEnabled) {
-                    self.$ctx.clearRect(x - 3, y - 3, 8, 8)//还要打磨，先走完
-                    $('.area').css({ top: y - 4, left: x - 4 })//要能调节大小
-                } else {
-                    self.drawCircle(x, y)
-                    self.drawLine(self.lastPoint.x, self.lastPoint.y, newPoint.x, newPoint.y)
-                    self.lastPoint = newPoint
-                }
-            })
-            this.$canvas.on('touchend', () => {
-                console.log('end')
-                self.using = false;
-                this.lastPoint = { x: undefined, y: undefined }
-            })
-        }else{//为非触屏设备            
-            $('#canvas').on('mousedown',function(point){
-                self.using=true;
-                let x=point.clientX
-                let y=point.clientY
-                self.lastPoint={x:x,y:y}
+                newPoint = self.testCharacter(point) 
+                let x1 = newPoint.x1
+                let y1 = newPoint.y1                                 
+                self.drawCircle(x1, y1, self.penWidth/2)
+                self.drawLine(self.lastPoint.x1, self.lastPoint.y1, newPoint.x1, newPoint.y1)
+                //为什么加了下面这句就出现不能监听touchend mouseup情况了？，删掉这句话除了没有橡皮擦的范围，其余都正常了
                 if (self.eraserEnabled){
-                    $('.area').css('display','block')
-                    console.log('准备橡皮擦:' + self.eraserEnabled)
-                    $('.area').css({ top: y - 4, left: x - 4 })//要能调节大小
+                    console.log('橡皮跟着鼠标飞')
+                    $('.area').css({top:y1,left:x1})
                 }
-            })
-
-                $("#canvas").on('mousemove',(point)=>{  
-            if(using){
-                let x = point.clientX
-                let y = point.clientY
-                let newPoint={x:x,y:y}
-                if (self.eraserEnabled){
-                    self.$ctx.clearRect(x-3,y-3,8,8)//还要打磨，先走完
-                    $('.area').css({ top: y - 4, left: x - 4 })//要能调节大小
-                }else{
-                    self.drawCircle(x,y)
-                    self.drawLine(lastPoint.x,lastPoint.y,newPoint.x,newPoint.y)
-                    self.lastPoint=newPoint            
-                    }
-                }
-            })
-
-            $('#canvas').on('mouseup',()=>{
-                console.log('up')
-                self.using=false;
-                this.lastPoint = { x: undefined, y: undefined }
-            }) 
+                //------..//
+                self.lastPoint = newPoint                
+            }          
+        })
+        this.$canvas.on('touchend mouseup', () => {
+            console.log('end')
+            self.using = false
+            this.lastPoint = { x1: undefined, y1: undefined }
+            $('.area').css('display', 'none')
+            return false
+        })
+    }
+    AppCanvas.prototype.testCharacter=function(point){
+        if (document.body.ontouchstart !== undefined) {//为触屏设备
+            var x = point.touches[0].clientX
+            var y = point.touches[0].clientY
+        } else {
+            var x = point.clientX
+            var y = point.clientY
         }
-    }    
-    AppCanvas.prototype.drawCircle=function(x, y, radius = 2){
+        return { x1: x, y1: y }
+    }
+       
+    AppCanvas.prototype.drawCircle = function (x, y, radius){
         this.$ctx.beginPath()
         this.$ctx.arc(x, y, radius, 0, Math.PI * 2)
         this.$ctx.fillStyle = this.color
@@ -135,7 +177,7 @@
     AppCanvas.prototype.drawLine=function(x1, y1, x2, y2) {
         this.$ctx.beginPath()
         this.$ctx.moveTo(x1, y1)
-        this.$ctx.lineWidth = 5
+        this.$ctx.lineWidth = self.penWidth
         this.$ctx.lineTo(x2, y2)
         this.$ctx.strokeStyle =this.color
         this.$ctx.stroke()
